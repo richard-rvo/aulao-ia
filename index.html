@@ -463,7 +463,6 @@
 
   <div class="page">
 
-    <!-- Header -->
     <div>
       <div class="badge"><span class="badge-dot"></span>Formulário de Inscrição</div>
       <h1>Criei tudo isso com IA.<br><span class="gradient-text">Você também pode.</span></h1>
@@ -474,7 +473,6 @@
       <div class="divider"></div>
     </div>
 
-    <!-- Progress -->
     <div class="progress-wrap" id="progressWrap">
       <div class="progress-step active" id="ps1"><div class="step-num">1</div><span>Você</span></div>
       <div class="progress-line" id="pl1"></div>
@@ -485,7 +483,6 @@
       <div class="progress-step" id="ps4"><div class="step-num">4</div><span>Objetivo</span></div>
     </div>
 
-    <!-- ── STEP 1: Identificação ── -->
     <div class="step-card active" id="step1">
       <div class="step-label">Passo 1 de 4</div>
       <div class="step-title">Quem é você?</div>
@@ -530,7 +527,6 @@
       </div>
     </div>
 
-    <!-- ── STEP 2: Contexto ── -->
     <div class="step-card" id="step2">
       <div class="step-label">Passo 2 de 4</div>
       <div class="step-title">Como você trabalha hoje?</div>
@@ -559,7 +555,6 @@
       </div>
     </div>
 
-    <!-- ── STEP 3: Uso atual de IA ── -->
     <div class="step-card" id="step3">
       <div class="step-label">Passo 3 de 4</div>
       <div class="step-title">Você e a IA hoje</div>
@@ -591,7 +586,6 @@
       </div>
     </div>
 
-    <!-- ── STEP 4: Objetivo ── -->
     <div class="step-card" id="step4">
       <div class="step-label">Passo 4 de 4</div>
       <div class="step-title">O que você quer transformar?</div>
@@ -638,7 +632,6 @@
       </div>
     </div>
 
-    <!-- ── SUCCESS ── -->
     <div class="success-screen" id="successScreen">
       <div class="success-icon">✦</div>
       <h2>Inscrição confirmada!</h2>
@@ -745,16 +738,12 @@
       };
 
       try {
-        if (SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbx4COBYKdA5y-wXAn9DAVAc-hNUmV3oCM5Jz9B44ha7AS1z6oLz-lxBkZn8Swp4Ob18/exec') {
-          // Modo demo — sem Apps Script configurado
-          await new Promise(r => setTimeout(r, 1200));
-        } else {
-          await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: new URLSearchParams(payload),
-          });
-        }
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: new URLSearchParams(payload),
+        });
+        
         document.getElementById('progressWrap').style.display = 'none';
         document.querySelectorAll('.step-card').forEach(c => c.style.display = 'none');
         document.getElementById('successScreen').classList.add('show');
