@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aulão de IA — Mostre-me quem você é</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07070f;
+      --surface:   #0e0e1c;
+      --card:      #13132a;
+      --border:    rgba(139,92,246,0.18);
+      --border-hover: rgba(139,92,246,0.55);
+      --purple-1:  #7c3aed;
+      --purple-2:  #9f5ff7;
+      --purple-3:  #c084fc;
+      --purple-4:  #e9d5ff;
+      --text:      #f0ecff;
+      --muted:     #9188b0;
+      --error:     #f87171;
+      --glow:      rgba(139,92,246,0.25);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Background orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { width: 600px; height: 600px; background: rgba(124,58,237,0.12); top: -200px; right: -200px; }
+    .orb-2 { width: 500px; height: 500px; background: rgba(192,132,252,0.07); bottom: -150px; left: -150px; }
+    .orb-3 { width: 300px; height: 300px; background: rgba(124,58,237,0.08); top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+    /* ── Layout ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 60px 24px 100px;
+    }
+
+    /* ── Header ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124,58,237,0.15);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--purple-3);
+      margin-bottom: 32px;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--purple-2);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--purple-2);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(36px, 6vw, 58px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, var(--purple-2) 0%, var(--purple-3) 60%, #f0abfc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 17px;
+      color: var(--muted);
+      max-width: 560px;
+      margin-bottom: 48px;
+      line-height: 1.7;
+    }
+    .subtitle strong { color: var(--purple-3); font-weight: 600; }
+
+    /* ── Progress ── */
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 40px;
+    }
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      transition: color .3s;
+    }
+    .progress-step.active  { color: var(--purple-3); }
+    .progress-step.done    { color: var(--purple-2); }
+    .step-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      transition: background .3s, border-color .3s;
+    }
+    .progress-step.active .step-num  { background: var(--purple-1); border-color: var(--purple-2); color: #fff; }
+    .progress-step.done .step-num    { background: var(--purple-1); border-color: var(--purple-2); color: #fff; }
+    .progress-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      transition: background .5s;
+    }
+    .progress-line.filled { background: var(--purple-1); }
+
+    /* ── Card / Step ── */
+    .step-card {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 0 60px rgba(124,58,237,0.06);
+      animation: fadeUp .45s ease;
+    }
+    .step-card.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple-2);
+      margin-bottom: 12px;
+    }
+    .step-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .step-desc {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    /* ── Fields ── */
+    .field { margin-bottom: 24px; }
+    .field label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--purple-4);
+      margin-bottom: 8px;
+    }
+    .field label span { color: var(--purple-2); margin-left: 2px; }
+
+    input[type="text"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+    }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    select { cursor: pointer; }
+    select option { background: var(--card); }
+    textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--purple-2);
+      box-shadow: 0 0 0 3px var(--glow);
+    }
+    input.error, select.error, textarea.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(248,113,113,0.15);
+    }
+    .field-error { font-size: 12px; color: var(--error); margin-top: 6px; display: none; }
+    .field-error.show { display: block; }
+
+    /* ── Radio chips ── */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chip input { display: none; }
+    .chip label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      margin: 0;
+    }
+    .chip input:checked + label {
+      border-color: var(--purple-2);
+      background: rgba(124,58,237,0.15);
+      color: var(--purple-3);
+      box-shadow: 0 0 14px rgba(139,92,246,0.2);
+    }
+    .chip label:hover { border-color: var(--border-hover); color: var(--text); }
+
+    /* ── Scale ── */
+    .scale-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .scale-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .scale-items { display: flex; gap: 8px; flex: 1; justify-content: center; }
+    .scale-item input { display: none; }
+    .scale-item label {
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      margin: 0;
+    }
+    .scale-item input:checked + label {
+      background: var(--purple-1);
+      border-color: var(--purple-2);
+      color: #fff;
+      box-shadow: 0 0 18px rgba(124,58,237,0.4);
+    }
+    .scale-item label:hover { border-color: var(--border-hover); color: var(--text); }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 36px;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(124,58,237,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(124,58,237,0.5); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--border-hover); color: var(--text); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    .btn-icon { font-size: 18px; }
+
+    /* ── Success ── */
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 40px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 0 80px rgba(124,58,237,0.1);
+      animation: fadeUp .5s ease;
+    }
+    .success-screen.show { display: block; }
+
+    .success-icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--purple-1), var(--purple-2));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 28px;
+      box-shadow: 0 0 40px rgba(124,58,237,0.4);
+    }
+    .success-screen h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .success-screen p { color: var(--muted); font-size: 16px; line-height: 1.7; }
+    .success-screen strong { color: var(--purple-3); }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .footer a { color: var(--purple-3); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 540px) {
+      .page { padding: 40px 16px 80px; }
+      .step-card { padding: 28px 20px; }
+      .scale-group { flex-direction: column; align-items: flex-start; }
+      .scale-items { justify-content: flex-start; }
+      h1 { font-size: 32px; }
+      .btn-row { flex-direction: column-reverse; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="page">
+
+    <!-- Header -->
+    <div>
+      <div class="badge"><span class="badge-dot"></span>Aulão de IA — Vagas Limitadas</div>
+      <h1>Criei tudo isso com IA.<br><span class="gradient-text">Você também pode.</span></h1>
+      <p class="subtitle">
+        Antes do aulão, preciso te conhecer. <strong>Responda 4 perguntas rápidas</strong> e eu vou personalizar
+        cada parte do conteúdo pra fazer sentido pra você — do zero ao avançado.
+      </p>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-step active" id="ps1"><div class="step-num">1</div><span>Você</span></div>
+      <div class="progress-line" id="pl1"></div>
+      <div class="progress-step" id="ps2"><div class="step-num">2</div><span>Contexto</span></div>
+      <div class="progress-line" id="pl2"></div>
+      <div class="progress-step" id="ps3"><div class="step-num">3</div><span>IA hoje</span></div>
+      <div class="progress-line" id="pl3"></div>
+      <div class="progress-step" id="ps4"><div class="step-num">4</div><span>Objetivo</span></div>
+    </div>
+
+    <!-- ── STEP 1: Identificação ── -->
+    <div class="step-card active" id="step1">
+      <div class="step-label">Passo 1 de 4</div>
+      <div class="step-title">Quem é você?</div>
+      <div class="step-desc">Começa pelo começo. Preciso saber seu nome e como te contactar.</div>
+
+      <div class="field">
+        <label>Nome completo <span>*</span></label>
+        <input type="text" id="nome" placeholder="Seu nome" autocomplete="name" />
+        <div class="field-error" id="e-nome">Por favor, informe seu nome.</div>
+      </div>
+
+      <div class="field">
+        <label>E-mail <span>*</span></label>
+        <input type="email" id="email" placeholder="seu@email.com" autocomplete="email" />
+        <div class="field-error" id="e-email">E-mail inválido ou não preenchido.</div>
+      </div>
+
+      <div class="field">
+        <label>Qual é a sua profissão ou área de atuação? <span>*</span></label>
+        <select id="profissao">
+          <option value="" disabled selected>Selecione...</option>
+          <option>Empreendedor / Dono de negócio</option>
+          <option>Marketing / Comunicação</option>
+          <option>Design / Criação</option>
+          <option>Tecnologia / Desenvolvimento</option>
+          <option>Vendas / Comercial</option>
+          <option>Finanças / Contabilidade</option>
+          <option>Gestão / Liderança</option>
+          <option>Educação / Treinamento</option>
+          <option>Saúde</option>
+          <option>Jurídico</option>
+          <option>Freelancer / Autônomo</option>
+          <option>Estudante</option>
+          <option>Outro</option>
+        </select>
+        <div class="field-error" id="e-profissao">Selecione sua área de atuação.</div>
+      </div>
+
+      <div class="btn-row">
+        <span></span>
+        <button class="btn btn-primary" onclick="goTo(2)">Continuar <span class="btn-icon">→</span></button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Contexto ── -->
+    <div class="step-card" id="step2">
+      <div class="step-label">Passo 2 de 4</div>
+      <div class="step-title">Como você trabalha hoje?</div>
+      <div class="step-desc">Quero entender seu contexto pra tornar o conteúdo mais próximo da sua realidade.</div>
+
+      <div class="field">
+        <label>Qual é o tamanho do seu negócio ou equipe?</label>
+        <div class="chip-group">
+          <div class="chip"><input type="radio" name="tamanho" id="t1" value="Só eu mesmo" /><label for="t1">Só eu mesmo</label></div>
+          <div class="chip"><input type="radio" name="tamanho" id="t2" value="2 a 5 pessoas" /><label for="t2">2 a 5 pessoas</label></div>
+          <div class="chip"><input type="radio" name="tamanho" id="t3" value="6 a 20 pessoas" /><label for="t3">6 a 20 pessoas</label></div>
+          <div class="chip"><input type="radio" name="tamanho" id="t4" value="Mais de 20 pessoas" /><label for="t4">+20 pessoas</label></div>
+          <div class="chip"><input type="radio" name="tamanho" id="t5" value="Estudante / sem negócio ainda" /><label for="t5">Estudante / sem negócio</label></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Qual é a maior dor ou ineficiência do seu dia a dia? <span>*</span></label>
+        <textarea id="dor" placeholder="Ex: passo horas criando conteúdo, fico travado em tarefas repetitivas, não tenho tempo pra analisar dados..."></textarea>
+        <div class="field-error" id="e-dor">Conta pra mim sobre sua principal dor.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goTo(1)"><span class="btn-icon">←</span> Voltar</button>
+        <button class="btn btn-primary" onclick="goTo(3)">Continuar <span class="btn-icon">→</span></button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: Uso atual de IA ── -->
+    <div class="step-card" id="step3">
+      <div class="step-label">Passo 3 de 4</div>
+      <div class="step-title">Você e a IA hoje</div>
+      <div class="step-desc">Sem julgamento — seja qual for o nível, o aulão foi feito pra você evoluir.</div>
+
+      <div class="field">
+        <label>Como você descreveria seu nível atual com IA?</label>
+        <div class="chip-group">
+          <div class="chip"><input type="radio" name="nivel" id="n1" value="Iniciante — ainda não uso ou usei pouco" /><label for="n1">🌱 Iniciante</label></div>
+          <div class="chip"><input type="radio" name="nivel" id="n2" value="Intermediário — uso mas de forma básica" /><label for="n2">🚀 Intermediário</label></div>
+          <div class="chip"><input type="radio" name="nivel" id="n3" value="Avançado — já integro IA nos meus processos" /><label for="n3">⚡ Avançado</label></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Quais ferramentas de IA você já usou? <em style="color:var(--muted);font-style:normal">(pode deixar em branco se nenhuma)</em></label>
+        <input type="text" id="ferramentas" placeholder="Ex: ChatGPT, Midjourney, Gemini, Copilot, n8n..." />
+      </div>
+
+      <div class="field">
+        <label>Como você usa IA hoje — ou gostaria de usar? <span>*</span></label>
+        <textarea id="como_usa" placeholder="Ex: escrever textos, gerar imagens, responder e-mails, analisar dados, automatizar tarefas..."></textarea>
+        <div class="field-error" id="e-como_usa">Me conta como você usa ou quer usar IA.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goTo(2)"><span class="btn-icon">←</span> Voltar</button>
+        <button class="btn btn-primary" onclick="goTo(4)">Continuar <span class="btn-icon">→</span></button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: Objetivo ── -->
+    <div class="step-card" id="step4">
+      <div class="step-label">Passo 4 de 4</div>
+      <div class="step-title">O que você quer transformar?</div>
+      <div class="step-desc">Essa é a pergunta mais importante. Sua resposta vai moldar o aulão inteiro.</div>
+
+      <div class="field">
+        <label>O que você quer criar, automatizar ou aperfeiçoar com IA? <span>*</span></label>
+        <textarea id="objetivo" placeholder="Seja específico: quero automatizar o atendimento da minha empresa, quero criar conteúdo 10x mais rápido, quero montar agentes que trabalhem enquanto eu durmo..."></textarea>
+        <div class="field-error" id="e-objetivo">Me conta o que você quer transformar com IA.</div>
+      </div>
+
+      <div class="field">
+        <label>Qual é o maior obstáculo que te impede de avançar com IA hoje?</label>
+        <div class="chip-group">
+          <div class="chip"><input type="radio" name="obstaculo" id="o1" value="Não sei por onde começar" /><label for="o1">Não sei por onde começar</label></div>
+          <div class="chip"><input type="radio" name="obstaculo" id="o2" value="Falta de tempo" /><label for="o2">Falta de tempo</label></div>
+          <div class="chip"><input type="radio" name="obstaculo" id="o3" value="Conteúdo muito técnico" /><label for="o3">Conteúdo muito técnico</label></div>
+          <div class="chip"><input type="radio" name="obstaculo" id="o4" value="Não vejo aplicação prática" /><label for="o4">Não vejo aplicação prática</label></div>
+          <div class="chip"><input type="radio" name="obstaculo" id="o5" value="Custo das ferramentas" /><label for="o5">Custo das ferramentas</label></div>
+          <div class="chip"><input type="radio" name="obstaculo" id="o6" value="Outro" /><label for="o6">Outro</label></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Expectativa de transformação após o aulão</label>
+        <div class="scale-group">
+          <span class="scale-label">Curiosidade</span>
+          <div class="scale-items">
+            <div class="scale-item"><input type="radio" name="expectativa" id="ex1" value="1"><label for="ex1">1</label></div>
+            <div class="scale-item"><input type="radio" name="expectativa" id="ex2" value="2"><label for="ex2">2</label></div>
+            <div class="scale-item"><input type="radio" name="expectativa" id="ex3" value="3"><label for="ex3">3</label></div>
+            <div class="scale-item"><input type="radio" name="expectativa" id="ex4" value="4"><label for="ex4">4</label></div>
+            <div class="scale-item"><input type="radio" name="expectativa" id="ex5" value="5"><label for="ex5">5</label></div>
+          </div>
+          <span class="scale-label">Transformação total</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goTo(3)"><span class="btn-icon">←</span> Voltar</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">
+          Enviar inscrição <span class="btn-icon">✦</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── SUCCESS ── -->
+    <div class="success-screen" id="successScreen">
+      <div class="success-icon">✦</div>
+      <h2>Inscrição confirmada!</h2>
+      <p>
+        <strong>Perfeito.</strong> Suas respostas chegaram e já estou mapeando o que você precisa.<br><br>
+        O aulão vai ser construído com base em pessoas reais — e agora você faz parte disso.<br><br>
+        <strong>Fique de olho no grupo do Whatsapp.</strong> Em breve você recebe todos os detalhes.
+      </p>
+    </div>
+
+    <div class="footer">
+      Feito inteiramente com IA — e você vai aprender a fazer o mesmo. ✦
+    </div>
+
+  </div>
+
+  <script>
+    // ── Config ──────────────────────────────────────────────────────────────
+    // Cole aqui a URL do seu Google Apps Script Web App após publicar
+    const SCRIPT_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
+    // ────────────────────────────────────────────────────────────────────────
+
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    function updateProgress(step) {
+      for (let i = 1; i <= totalSteps; i++) {
+        const ps = document.getElementById('ps' + i);
+        ps.classList.remove('active', 'done');
+        if (i < step)  ps.classList.add('done');
+        if (i === step) ps.classList.add('active');
+      }
+      for (let i = 1; i < totalSteps; i++) {
+        const pl = document.getElementById('pl' + i);
+        pl.classList.toggle('filled', i < step);
+      }
+    }
+
+    function showStep(n) {
+      document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active'));
+      const card = document.getElementById('step' + n);
+      if (card) { card.classList.add('active'); card.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      updateProgress(n);
+      currentStep = n;
+    }
+
+    // ── Validation helpers ──
+    function val(id, check) {
+      const el = document.getElementById(id);
+      const err = document.getElementById('e-' + id);
+      const ok = check(el);
+      el.classList.toggle('error', !ok);
+      if (err) err.classList.toggle('show', !ok);
+      return ok;
+    }
+    const notEmpty = el => el.value.trim().length > 0;
+    const isEmail  = el => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim());
+    const notDefault = el => el.value !== '';
+
+    function validateStep(n) {
+      if (n === 1) {
+        const a = val('nome', notEmpty);
+        const b = val('email', isEmail);
+        const c = val('profissao', notDefault);
+        return a && b && c;
+      }
+      if (n === 2) return val('dor', notEmpty);
+      if (n === 3) return val('como_usa', notEmpty);
+      if (n === 4) return val('objetivo', notEmpty);
+      return true;
+    }
+
+    function goTo(n) {
+      if (n > currentStep && !validateStep(currentStep)) return;
+      showStep(n);
+    }
+
+    // ── Submit ──
+    async function submitForm() {
+      if (!validateStep(4)) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+
+      const getRadio = name => {
+        const el = document.querySelector(`input[name="${name}"]:checked`);
+        return el ? el.value : '';
+      };
+
+      const payload = {
+        timestamp:   new Date().toLocaleString('pt-BR'),
+        nome:        document.getElementById('nome').value.trim(),
+        email:       document.getElementById('email').value.trim(),
+        profissao:   document.getElementById('profissao').value,
+        tamanho:     getRadio('tamanho'),
+        dor:         document.getElementById('dor').value.trim(),
+        nivel:       getRadio('nivel'),
+        ferramentas: document.getElementById('ferramentas').value.trim(),
+        como_usa:    document.getElementById('como_usa').value.trim(),
+        objetivo:    document.getElementById('objetivo').value.trim(),
+        obstaculo:   getRadio('obstaculo'),
+        expectativa: getRadio('expectativa'),
+      };
+
+      try {
+        if (SCRIPT_URL === 'COLE_AQUI_A_URL_DO_APPS_SCRIPT') {
+          // Modo demo — sem Apps Script configurado
+          await new Promise(r => setTimeout(r, 1200));
+        } else {
+          await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+        document.getElementById('progressWrap').style.display = 'none';
+        document.querySelectorAll('.step-card').forEach(c => c.style.display = 'none');
+        document.getElementById('successScreen').classList.add('show');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = 'Enviar inscrição <span class="btn-icon">✦</span>';
+        alert('Ops! Algo deu errado. Tente novamente.');
+      }
+    }
+  </script>
+</body>
+</html>
